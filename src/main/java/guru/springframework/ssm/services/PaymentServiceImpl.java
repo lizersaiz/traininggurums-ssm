@@ -6,6 +6,7 @@ import org.springframework.statemachine.StateMachine;
 import org.springframework.statemachine.config.StateMachineFactory;
 import org.springframework.statemachine.support.DefaultStateMachineContext;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import guru.springframework.ssm.domain.Payment;
 import guru.springframework.ssm.domain.PaymentEvent;
@@ -30,16 +31,18 @@ public class PaymentServiceImpl implements PaymentService {
 		return paymentRepository.save(payment);
 	}
 
+	@Transactional
 	@Override
 	public StateMachine<PaymentState, PaymentEvent> preAuth(Long paymentId) {
 		
 		StateMachine<PaymentState, PaymentEvent> sm = build(paymentId);
 		
-		sendEvent(paymentId, sm, PaymentEvent.PRE_AUTHORISE);
+		sendEvent(paymentId, sm, PaymentEvent.PRE_AUTH_APPROVED);
 		
-		return null;
+		return sm;
 	}
 
+	@Transactional
 	@Override
 	public StateMachine<PaymentState, PaymentEvent> authorisePayment(Long paymentId) {
 
@@ -47,9 +50,10 @@ public class PaymentServiceImpl implements PaymentService {
 		
 		sendEvent(paymentId, sm, PaymentEvent.AUTH_APROVED);
 		
-		return null;
+		return sm;
 	}
 
+	@Transactional
 	@Override
 	public StateMachine<PaymentState, PaymentEvent> declineAuth(Long paymentId) {
 
@@ -57,7 +61,7 @@ public class PaymentServiceImpl implements PaymentService {
 
 		sendEvent(paymentId, sm, PaymentEvent.AUTH_DECLINED);
 
-		return null;
+		return sm;
 	}
 	
 	private void sendEvent(Long paymentId, StateMachine<PaymentState, PaymentEvent> sm, PaymentEvent event) {
