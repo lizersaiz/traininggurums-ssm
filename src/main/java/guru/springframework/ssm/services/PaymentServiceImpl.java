@@ -44,6 +44,17 @@ public class PaymentServiceImpl implements PaymentService {
 
 	@Transactional
 	@Override
+	public StateMachine<PaymentState, PaymentEvent> authorise(Long paymentId) {
+
+		StateMachine<PaymentState, PaymentEvent> sm = build(paymentId);
+		
+		sendEvent(paymentId, sm, PaymentEvent.AUTHORIZE);
+		
+		return sm;
+	}
+	
+	@Transactional
+	@Override
 	public StateMachine<PaymentState, PaymentEvent> authorisePayment(Long paymentId) {
 
 		StateMachine<PaymentState, PaymentEvent> sm = build(paymentId);

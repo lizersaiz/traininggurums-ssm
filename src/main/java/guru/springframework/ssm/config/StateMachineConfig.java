@@ -11,6 +11,7 @@ import org.springframework.statemachine.config.StateMachineConfigurerAdapter;
 import org.springframework.statemachine.config.builders.StateMachineConfigurationConfigurer;
 import org.springframework.statemachine.config.builders.StateMachineStateConfigurer;
 import org.springframework.statemachine.config.builders.StateMachineTransitionConfigurer;
+import org.springframework.statemachine.guard.Guard;
 import org.springframework.statemachine.listener.StateMachineListenerAdapter;
 import org.springframework.statemachine.state.State;
 
@@ -40,11 +41,26 @@ public class StateMachineConfig extends StateMachineConfigurerAdapter<PaymentSta
 		
 		//SOURCE (source state) will change when a EVENT happens into TARGET and it will call an ACTION 
 		transitions.withExternal().source(PaymentState.NEW).target(PaymentState.NEW).event(PaymentEvent.PRE_AUTHORISE)
-				.action(preAuthAction())
+				.action(preAuthAction()).guard(paymentIdGuard())
 			.and()
 			.withExternal().source(PaymentState.NEW).target(PaymentState.PRE_AUTH).event(PaymentEvent.PRE_AUTH_APPROVED)
 			.and()
-			.withExternal().source(PaymentState.NEW).target(PaymentState.PRE_AUTH_ERROR).event(PaymentEvent.PRE_AUTH_DECLINED);
+			.withExternal().source(PaymentState.NEW).target(PaymentState.PRE_AUTH_ERROR).event(PaymentEvent.PRE_AUTH_DECLINED)
+			.and()
+			.withExternal().source(PaymentState.PRE_AUTH).target(PaymentState.PRE_AUTH).event(PaymentEvent.AUTHORIZE)
+				.action(authAction())
+			.and()
+			.withExternal().source(PaymentState.PRE_AUTH).target(PaymentState.AUTH).event(PaymentEvent.AUTH_APROVED)
+			.and()
+			.withExternal().source(PaymentState.PRE_AUTH).target(PaymentState.AUTH_ERROR).event(PaymentEvent.AUTH_DECLINED);
+	}
+	
+	public Guard<PaymentState, PaymentEvent> paymentIdGuard() {
+		
+		return context -> {
+			
+			return context.getMessageHeader(PaymentServiceImpl.PAYMENT_ID_HEADER) != null;
+		};
 	}
 	
 	@Override
@@ -82,6 +98,27 @@ public class StateMachineConfig extends StateMachineConfigurerAdapter<PaymentSta
 						.build());
 			}
 		};
+	}
+	
+	public Action<PaymentState, PaymentEvent> authAction() {
 		
+		return context -> {
+			
+			System.out.println("Auth was called");
+			
+			if (new Random().nextInt(10) < 8) {
+				
+				System.out.println("Payment Authorized");
+				context.getStateMachine().sendEvent(MessageBuilder.withPayload(PaymentEvent.AUTH_APROVED)
+						.setHeader(PaymentServiceImpl.PAYMENT_ID_HEADER, context.getMessageHeader(PaymentServiceImpl.PAYMENT_ID_HEADER))
+						.build());
+			} else {
+				
+				System.out.println("Payment Declined");
+				context.getStateMachine().sendEvent(MessageBuilder.withPayload(PaymentEvent.AUTH_DECLINED)
+						.setHeader(PaymentServiceImpl.PAYMENT_ID_HEADER, context.getMessageHeader(PaymentServiceImpl.PAYMENT_ID_HEADER))
+						.build());
+			}
+		};
 	}
 }

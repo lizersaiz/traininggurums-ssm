@@ -46,4 +46,21 @@ public class PaymentServiceImplTest {
 		
 		System.out.println(preAuthedPayment);
 	}
+	
+	@Transactional
+	@Test
+	void auth() {
+		
+		System.out.println("");
+		System.out.println("authorisation test");
+		
+		Payment savedPayment = paymentService.newPayment(payment);
+		
+		StateMachine<PaymentState, PaymentEvent> preAuthSm = paymentService.preAuth(savedPayment.getId());
+		
+		StateMachine<PaymentState, PaymentEvent> authSm = paymentService.authorise(savedPayment.getId());
+		
+		System.out.println(authSm.getState().getId());
+		System.out.println(savedPayment);
+	}
 }
